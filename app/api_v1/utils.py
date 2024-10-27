@@ -74,4 +74,5 @@ async def create_referral_user(
         raise CustomApiException(status_code=409, detail="Реферальный код просрочен")
     user = await create_user(session, new_referral.user)
     referral = await create_referral(session, user.id, ref_code.id)
+    await session.refresh(referral)
     return referral

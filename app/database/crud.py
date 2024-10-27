@@ -93,6 +93,7 @@ async def create_referral(
     referral = Referral(user_id=user_id, code_id=code_id)
     session.add(referral)
     await session.commit()
+    await session.refresh(referral)
     return referral
 
 
@@ -109,21 +110,31 @@ async def delete_code(session: AsyncSession, user: UserSchema) -> bool:
 
 async def get_referrals(session: AsyncSession, user_id: int):
     query = (
-        select(ReferralCode)
-        .options(joinedload(ReferralCode.referrals).joinedload(Referral.user))
-        .where(ReferralCode.author_id == user_id)
+        select(User)
+        .options(
+            joinedload(User.code_value)
+            .joinedload(ReferralCode.referrals)
+            .joinedload(Referral.user)
+        )
+        .where(User.id == user_id)
     )
 
-    referrals = await session.execute(query)
-    result = referrals.unique().scalar_one_or_none()
-    if not result:
+    result = await session.execute(query)
+    user = result.unique().scalar_one_or_none()
+
+    if not user:
         raise CustomApiException(status_code=404, detail="Пользователь не найден")
 
-    if len(result.referrals) == 0:
+    if not user.code_value:
+        raise CustomApiException(
+            status_code=404, detail="У пользователя нет реферального кода"
+        )
+
+    referrals = user.code_value.referrals
+    if not referrals:
         raise CustomApiException(
             status_code=404, detail="У пользователя ещё нет рефералов"
         )
 
-    referral_users = [i.user[0] for i in result.referrals]
-    users_dict = {"users": referral_users}
-    return users_dict
+    referral_users = [ref.user for ref in referrals if ref.user]
+    return {"users": referral_users}
