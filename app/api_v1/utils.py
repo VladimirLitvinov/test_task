@@ -10,19 +10,27 @@ from database import User, Referral
 from auth.utils import validate_password
 from database.base import get_async_session
 from auth import utils
-from database.crud import get_user_by_id, get_referral_code, create_user, \
-    create_referral
+from database.crud import (
+    get_user_by_id,
+    get_referral_code,
+    create_user,
+    create_referral,
+)
 from schemas.referrals import CreateReferralSchema
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api-v1/auth/token", )
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api-v1/auth/token",
+)
 
 
-async def validate_user(session: AsyncSession = Depends(get_async_session),
-                        username: str = Form(),
-                        password: str = Form(),
-                        ):
-    unauthed_exc = CustomApiException(status_code=401,
-                                      detail="Неверный username или пароль")
+async def validate_user(
+    session: AsyncSession = Depends(get_async_session),
+    username: str = Form(),
+    password: str = Form(),
+):
+    unauthed_exc = CustomApiException(
+        status_code=401, detail="Неверный username или пароль"
+    )
 
     query = select(User).where(User.username == username)
     user = await session.execute(query)
@@ -42,16 +50,14 @@ async def get_current_payload(token: str = Depends(oauth2_scheme)):
             token=token,
         )
     except InvalidTokenError as e:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Ошибка недействительного токена"
-        )
+        raise HTTPException(status_code=401, detail=f"Ошибка недействительного токена")
     return payload
 
 
-async def get_current_auth_user(payload: dict = Depends(get_current_payload),
-                                session: AsyncSession = Depends(
-                                    get_async_session)) -> User:
+async def get_current_auth_user(
+    payload: dict = Depends(get_current_payload),
+    session: AsyncSession = Depends(get_async_session),
+) -> User:
     id: int = payload.get("sub")
     user = await get_user_by_id(session, id)
     if not user:
@@ -60,12 +66,12 @@ async def get_current_auth_user(payload: dict = Depends(get_current_payload),
     return user
 
 
-async def create_referral_user(session: AsyncSession,
-                               new_referral: CreateReferralSchema) -> Referral:
+async def create_referral_user(
+    session: AsyncSession, new_referral: CreateReferralSchema
+) -> Referral:
     ref_code = await get_referral_code(session, new_referral.referral_code)
     if ref_code.valid_until < date.today():
-        raise CustomApiException(status_code=409,
-                                 detail="Реферальный код просрочен")
+        raise CustomApiException(status_code=409, detail="Реферальный код просрочен")
     user = await create_user(session, new_referral.user)
     referral = await create_referral(session, user.id, ref_code.id)
     return referral

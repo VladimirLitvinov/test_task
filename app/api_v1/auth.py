@@ -7,10 +7,14 @@ from schemas.token import Token
 from schemas.exceptions import UnauthorizedResponseSchema
 
 
-router = APIRouter(tags=['auth'])
+router = APIRouter(tags=["auth"])
 
 
-@router.post('/token', response_model=Token, responses={401: {'model': UnauthorizedResponseSchema}})
+@router.post(
+    "/token",
+    response_model=Token,
+    responses={401: {"model": UnauthorizedResponseSchema}},
+)
 async def get_token(user: UserSchema = Depends(validate_user)):
     jwt_payload = {
         "sub": user.id,

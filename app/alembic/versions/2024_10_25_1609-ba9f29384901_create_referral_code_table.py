@@ -34,13 +34,9 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_referralcodes")),
-        sa.UniqueConstraint(
-            "author_id", name=op.f("uq_referralcodes_author_id")
-        ),
+        sa.UniqueConstraint("author_id", name=op.f("uq_referralcodes_author_id")),
     )
-    op.create_index(
-        op.f("ix_referralcodes_id"), "referralcodes", ["id"], unique=False
-    )
+    op.create_index(op.f("ix_referralcodes_id"), "referralcodes", ["id"], unique=False)
     # ### end Alembic commands ###
 
 

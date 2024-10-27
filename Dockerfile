@@ -1,5 +1,6 @@
 FROM python:3.12-slim
 
+WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -10,11 +11,13 @@ RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-dev
 
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 COPY . .
 
+SHELL ["/bin/bash", "-c"]
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN apt-get update && \
+    apt-get install -y dos2unix && \
+    dos2unix /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

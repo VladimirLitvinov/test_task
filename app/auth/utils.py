@@ -3,14 +3,21 @@ from datetime import datetime, timedelta
 import jwt
 import bcrypt
 
-from config import ALGORITHM, PUBLIC_KEY_PATH, PRIVATE_KEY_PATH, \
-    ACCESS_TOKEN_EXPIRE_MINUTES
+from config import (
+    ALGORITHM,
+    PUBLIC_KEY_PATH,
+    PRIVATE_KEY_PATH,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
 
 
-def encode_jwt(payload: dict, private_key: str = PRIVATE_KEY_PATH.read_text(),
-               algorithm: str = ALGORITHM,
-               expire_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES,
-               expire_timedelta: timedelta | None = None):
+def encode_jwt(
+    payload: dict,
+    private_key: str = PRIVATE_KEY_PATH.read_text(),
+    algorithm: str = ALGORITHM,
+    expire_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+    expire_timedelta: timedelta | None = None,
+):
     to_encode = payload.copy()
     now = datetime.utcnow()
     if expire_timedelta:
@@ -22,14 +29,17 @@ def encode_jwt(payload: dict, private_key: str = PRIVATE_KEY_PATH.read_text(),
     return encoded_jwt
 
 
-def decode_jwt(token: str, public_key: str = PUBLIC_KEY_PATH.read_text(),
-               algorithm: str = ALGORITHM):
+def decode_jwt(
+    token: str,
+    public_key: str = PUBLIC_KEY_PATH.read_text(),
+    algorithm: str = ALGORITHM,
+):
     decoded_jwt = jwt.decode(token, public_key, algorithm)
     return decoded_jwt
 
 
 def hash_password(
-        password: str,
+    password: str,
 ) -> bytes:
     salt = bcrypt.gensalt()
     pwd_bytes: bytes = password.encode()
@@ -37,8 +47,8 @@ def hash_password(
 
 
 def validate_password(
-        password: str,
-        hashed_password: bytes,
+    password: str,
+    hashed_password: bytes,
 ) -> bool:
     return bcrypt.checkpw(
         password=password.encode(),
