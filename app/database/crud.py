@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import User, ReferralCode, Referral
 from schemas.schemas import UserCreate, UserSchema
 from auth.utils import hash_password
+from cache.redis import RedisCache
 
 
 def generate_code() -> str:
@@ -51,29 +52,49 @@ async def get_user_by_id(session: AsyncSession, id: int) -> User:
 
 
 async def create_referral_code(
-    session: AsyncSession, user: UserSchema, date: date
+    session: AsyncSession, user: UserSchema, valid_until: date
 ) -> ReferralCode:
     referral_code = ReferralCode(
-        author_id=user.id, code=generate_code(), valid_until=date
+        author_id=user.id, code=generate_code(), valid_until=valid_until
     )
     session.add(referral_code)
     try:
         await session.commit()
+        await RedisCache.delete_referral_code(user.email)
     except IntegrityError:
         raise CustomApiException(status_code=409, detail="У вас уже есть промокод")
+
     return referral_code
 
 
 async def get_referral_code_by_email(session: AsyncSession, email: str) -> ReferralCode:
+    cached_code = await RedisCache.get_referral_code(email)
+    if cached_code:
+        return ReferralCode(
+            id=cached_code["id"],
+            code=cached_code["code"],
+            valid_until=cached_code["valid_until"],
+            author_id=cached_code["author_id"],
+        )
+
     query = select(User).options(joinedload(User.code_value)).where(User.email == email)
     user = await session.execute(query)
     result = user.unique().scalar_one_or_none()
+
     if not result:
         raise CustomApiException(
             status_code=404, detail="Пользователь с таким email не найден"
         )
     if result.code_value is None:
         raise CustomApiException(status_code=404, detail="У пользователя ещё нет кода")
+
+    code_data = {
+        "id": result.code_value.id,
+        "author_id": result.code_value.author_id,
+        "code": result.code_value.code,
+        "valid_until": result.code_value.valid_until.isoformat(),
+    }
+    await RedisCache.set_referral_code(email, code_data)
 
     return result.code_value
 
@@ -105,6 +126,7 @@ async def delete_code(session: AsyncSession, user: UserSchema) -> bool:
         raise CustomApiException(status_code=404, detail="У вас ещё нет кода")
     await session.delete(result)
     await session.commit()
+    await RedisCache.delete_referral_code(user.email)
     return True
 
 
