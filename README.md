@@ -9,6 +9,7 @@
 * **PostgreSQL** (database);
 * **SQLAlchemy** (working with database from Python);
 * **Alembic** (database migrations made easy);
+* **Redis** (data caching);
 
 
 ## Сборка и запуск приложения
