@@ -13,7 +13,7 @@ class User(Base):
 
     code_value = relationship(
         "ReferralCode",
-        backref="author",
+        back_populates="author",
         uselist=False,
         cascade="all, delete, delete-orphan",
     )
@@ -29,7 +29,11 @@ class ReferralCode(Base):
     code = Column(String, nullable=False)
     valid_until = Column(Date, nullable=False)
 
-    referrals = relationship("Referral", backref="referralcodes", uselist=True)
+    author = relationship("User", back_populates="code_value")
+
+    referrals = relationship(
+        "Referral", back_populates="referral_code", cascade="all, delete-orphan"
+    )
 
 
 class Referral(Base):
@@ -43,4 +47,6 @@ class Referral(Base):
         Integer, ForeignKey("referralcodes.id", ondelete="CASCADE"), nullable=False
     )
 
-    user = relationship("User", backref="referrals", uselist=True)
+    user = relationship("User", backref="referral", uselist=False)
+
+    referral_code = relationship("ReferralCode", back_populates="referrals")
