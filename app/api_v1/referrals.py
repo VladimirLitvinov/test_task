@@ -16,7 +16,7 @@ from schemas.responses import (
 router = APIRouter(tags=["referrals"])
 
 
-@router.get("/referrals/{user_id}", response_model=ReferralListResponseSchema)
+@router.get("/{user_id}", response_model=ReferralListResponseSchema)
 async def get_user_referrals(
     user_id: int, session: AsyncSession = Depends(get_async_session)
 ):
